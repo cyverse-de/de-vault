@@ -24,15 +24,16 @@ to quickly create a Cobra application.`,
 
 func init() {
 	generateCmd.AddCommand(tlsCertsCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// tls-certsCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// tls-certsCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
-
+	tlsCertsCmd.PersistentFlags().StringVar(
+		&certPath,
+		"tls-cert",
+		"",
+		"The path that will contain the new TLS cert.",
+	)
+	tlsCertsCmd.PersistentFlags().StringVar(
+		&keyPath,
+		"tls-key",
+		"",
+		"The path that will contain the new TLS key.",
+	)
 }

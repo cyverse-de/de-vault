@@ -24,15 +24,25 @@ to quickly create a Cobra application.`,
 
 func init() {
 	initCmd.AddCommand(rootCaCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// root-caCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// root-caCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	removeCmd.AddCommand(rootCaCmd)
+	checkCmd.AddCommand(rootCaCmd)
+	rootCaCmd.PersistentFlags().StringVar(
+		&mount, // defined in root.go
+		"mount",
+		"",
+		"The path in Vault to the intermediate CA pki backend.",
+	)
+	rootCaCmd.PersistentFlags().StringVar(
+		&role, // defined in root.go
+		"role",
+		"",
+		"The name of the role to use for operations on the intermediate CA.",
+	)
+	rootCaCmd.PersistentFlags().StringVar(
+		&commonName, // defined in root.go
+		"common-name",
+		"",
+		"The common name to use for operations on the intermediate CA.",
+	)
 
 }
