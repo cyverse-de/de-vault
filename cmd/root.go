@@ -2,7 +2,9 @@ package cmd
 
 import (
 	"log"
+	"net/url"
 
+	"github.com/cyverse-de/vaulter"
 	"github.com/spf13/cobra"
 )
 
@@ -11,6 +13,8 @@ var (
 	vaultURL    string
 	clientCert  string
 	clientKey   string
+	vaultAPI    *vaulter.VaultAPI
+	vaultCFG    *vaulter.VaultAPIConfig
 )
 
 // RootCmd is the root node in the command tree
@@ -19,12 +23,24 @@ var RootCmd = &cobra.Command{
 	Short: "Utility for managing Vault for the Discovery Environment",
 	Long: `A command-line utility for managing a deployment of Hashicorp's Vault
 project. This tool is geared towards CyVerse's Discovery Environment.`,
-}
-
-func Execute() {
-	if err := RootCmd.Execute(); err != nil {
-		log.Fatal(err)
-	}
+	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		connURL, err := url.Parse(vaultURL)
+		if err != nil {
+			log.Fatal(err)
+		}
+		vaultCFG = &vaulter.VaultAPIConfig{
+			ParentToken: parentToken,
+			Host:        connURL.Hostname(),
+			Port:        connURL.Port(),
+			Scheme:      connURL.Scheme,
+			ClientCert:  clientCert,
+			ClientKey:   clientKey,
+		}
+		vaultAPI = &vaulter.VaultAPI{}
+		if err = vaulter.InitAPI(vaultAPI, vaultCFG, vaultCFG.ParentToken); err != nil {
+			log.Fatal(err)
+		}
+	},
 }
 
 var (
