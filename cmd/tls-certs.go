@@ -21,7 +21,7 @@ import (
 )
 
 // tls-certsCmd represents the tls-certs command
-var tls-certsCmd = &cobra.Command{
+var tlsCertsCmd = &cobra.Command{
 	Use:   "tls-certs",
 	Short: "A brief description of your command",
 	Long: `A longer description that spans multiple lines and likely contains examples
@@ -37,7 +37,7 @@ to quickly create a Cobra application.`,
 }
 
 func init() {
-	generateCmd.AddCommand(tls-certsCmd)
+	generateCmd.AddCommand(tlsCertsCmd)
 
 	// Here you will define your flags and configuration settings.
 

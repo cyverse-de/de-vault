@@ -21,7 +21,7 @@ import (
 )
 
 // intermediate-caCmd represents the intermediate-ca command
-var intermediate-caCmd = &cobra.Command{
+var intermediateCaCmd = &cobra.Command{
 	Use:   "intermediate-ca",
 	Short: "A brief description of your command",
 	Long: `A longer description that spans multiple lines and likely contains examples
@@ -37,7 +37,7 @@ to quickly create a Cobra application.`,
 }
 
 func init() {
-	initCmd.AddCommand(intermediate-caCmd)
+	initCmd.AddCommand(intermediateCaCmd)
 
 	// Here you will define your flags and configuration settings.
 
