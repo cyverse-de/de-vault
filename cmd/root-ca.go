@@ -2,7 +2,9 @@ package cmd
 
 import (
 	"fmt"
+	"log"
 
+	"github.com/cyverse-de/vaulter"
 	"github.com/spf13/cobra"
 )
 
@@ -31,8 +33,40 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		// TODO: Work your own magic here
-		fmt.Println("root-ca check called")
+		fmt.Printf("Root CA backend is mounted:\t")
+		hasRoot, err := vaulter.IsMounted(vaultAPI, mount)
+		if err != nil {
+			log.Fatal(err)
+		}
+		if hasRoot {
+			fmt.Print("YES\n")
+		} else {
+			fmt.Print("NO\n")
+		}
+
+		var hasRole bool
+		fmt.Printf("Root CA role exists:\t")
+		hasRole, err = vaulter.HasRole(vaultAPI, mount, role, commonName, true)
+		if err != nil {
+			log.Fatal(err)
+		}
+		if hasRole {
+			fmt.Print("YES\n")
+		} else {
+			fmt.Print("NO\n")
+		}
+
+		fmt.Printf("Root CA cert exists:\t")
+		var hasCert bool
+		hasCert, err = vaulter.HasRootCert(vaultAPI, mount, role, commonName)
+		if err != nil {
+			log.Fatal(err)
+		}
+		if hasCert {
+			fmt.Print("YES\n")
+		} else {
+			fmt.Print("NO\n")
+		}
 	},
 }
 
