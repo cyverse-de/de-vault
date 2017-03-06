@@ -172,20 +172,13 @@ This command does not create any of the above if it does not exist. Use the
 
 var rootCARemoveCmd = &cobra.Command{
 	Use:   "root-ca",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "Removes the root CA from Vault",
+	Long: `Removes the root CA, the role used with the root CA, and the root cert
+from Vault. This is done by unmounting the Vault backend for the root CA. This
+command will return successfully if the root CA backend is already unmounted.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if mount == "" {
 			log.Fatal("--mount must be set.")
-		}
-
-		if role == "" {
-			log.Fatal("--role must be set.")
 		}
 
 		w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', tabwriter.StripEscape)
@@ -213,6 +206,7 @@ func init() {
 	const defaultRole = "root-ca"
 	const defaultMount = "root-ca"
 
+	// Set up the 'init root-ca' command.
 	initCmd.AddCommand(rootCAInitCmd)
 	rootCAInitCmd.PersistentFlags().StringVar(
 		&mount, // defined in root.go
@@ -233,6 +227,7 @@ func init() {
 		"The common name to use for operations on the intermediate CA.",
 	)
 
+	// Set up the 'remove root-ca' command.
 	removeCmd.AddCommand(rootCARemoveCmd)
 	rootCARemoveCmd.PersistentFlags().StringVar(
 		&mount, // defined in root.go
@@ -240,19 +235,8 @@ func init() {
 		defaultMount,
 		"The path in Vault to the intermediate CA pki backend.",
 	)
-	rootCARemoveCmd.PersistentFlags().StringVar(
-		&role, // defined in root.go
-		"role",
-		defaultRole,
-		"The name of the role to use for operations on the intermediate CA.",
-	)
-	rootCARemoveCmd.PersistentFlags().StringVar(
-		&commonName, // defined in root.go
-		"common-name",
-		"",
-		"The common name to use for operations on the intermediate CA.",
-	)
 
+	// Set up the 'check root-ca' command.
 	checkCmd.AddCommand(rootCACheckCmd)
 	rootCACheckCmd.PersistentFlags().StringVar(
 		&mount, // defined in root.go
