@@ -3,6 +3,8 @@ package cmd
 import (
 	"fmt"
 	"log"
+	"os"
+	"text/tabwriter"
 
 	"github.com/cyverse-de/vaulter"
 	"github.com/spf13/cobra"
@@ -33,40 +35,60 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Printf("Root CA backend is mounted:\t")
+		if mount == "" {
+			log.Fatal("--mount must be set.")
+		}
+
+		if role == "" {
+			log.Fatal("--role must be set.")
+		}
+
+		if commonName == "" {
+			log.Fatal("--common-name must be set.")
+		}
+
+		w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', tabwriter.StripEscape)
+
+		fmt.Fprintf(w, "Root CA backend is mounted:\t")
 		hasRoot, err := vaulter.IsMounted(vaultAPI, mount)
 		if err != nil {
 			log.Fatal(err)
 		}
 		if hasRoot {
-			fmt.Print("YES\n")
+			fmt.Fprint(w, "YES\t\n")
 		} else {
-			fmt.Print("NO\n")
+			fmt.Fprint(w, "NO\t\n")
 		}
 
 		var hasRole bool
-		fmt.Printf("Root CA role exists:\t")
+		fmt.Fprintf(w, "Root CA role exists:\t")
 		hasRole, err = vaulter.HasRole(vaultAPI, mount, role, commonName, true)
 		if err != nil {
 			log.Fatal(err)
 		}
 		if hasRole {
-			fmt.Print("YES\n")
+			fmt.Fprint(w, "YES\t\n")
 		} else {
-			fmt.Print("NO\n")
+			fmt.Fprint(w, "NO\t\n")
 		}
 
-		fmt.Printf("Root CA cert exists:\t")
-		var hasCert bool
-		hasCert, err = vaulter.HasRootCert(vaultAPI, mount, role, commonName)
-		if err != nil {
-			log.Fatal(err)
-		}
-		if hasCert {
-			fmt.Print("YES\n")
+		fmt.Fprintf(w, "Root CA cert exists:\t")
+		if !hasRole {
+			fmt.Fprint(w, "UNKNOWN\t\n")
 		} else {
-			fmt.Print("NO\n")
+			var hasCert bool
+			hasCert, err = vaulter.HasRootCert(vaultAPI, mount, role, commonName)
+			if err != nil {
+				log.Fatal(err)
+			}
+			if hasCert {
+				fmt.Fprint(w, "YES\t\n")
+			} else {
+				fmt.Fprint(w, "NO\t\n")
+			}
 		}
+
+		w.Flush()
 	},
 }
 
@@ -86,17 +108,20 @@ to quickly create a Cobra application.`,
 }
 
 func init() {
+	const defaultRole = "root-ca"
+	const defaultMount = "root-ca"
+
 	initCmd.AddCommand(rootCAInitCmd)
 	rootCAInitCmd.PersistentFlags().StringVar(
 		&mount, // defined in root.go
 		"mount",
-		"",
+		defaultMount,
 		"The path in Vault to the intermediate CA pki backend.",
 	)
 	rootCAInitCmd.PersistentFlags().StringVar(
 		&role, // defined in root.go
 		"role",
-		"",
+		defaultRole,
 		"The name of the role to use for operations on the intermediate CA.",
 	)
 	rootCAInitCmd.PersistentFlags().StringVar(
@@ -110,13 +135,13 @@ func init() {
 	rootCARemoveCmd.PersistentFlags().StringVar(
 		&mount, // defined in root.go
 		"mount",
-		"",
+		defaultMount,
 		"The path in Vault to the intermediate CA pki backend.",
 	)
 	rootCARemoveCmd.PersistentFlags().StringVar(
 		&role, // defined in root.go
 		"role",
-		"",
+		defaultRole,
 		"The name of the role to use for operations on the intermediate CA.",
 	)
 	rootCARemoveCmd.PersistentFlags().StringVar(
@@ -130,13 +155,13 @@ func init() {
 	rootCACheckCmd.PersistentFlags().StringVar(
 		&mount, // defined in root.go
 		"mount",
-		"",
+		defaultMount,
 		"The path in Vault to the intermediate CA pki backend.",
 	)
 	rootCACheckCmd.PersistentFlags().StringVar(
 		&role, // defined in root.go
 		"role",
-		"",
+		defaultRole,
 		"The name of the role to use for operations on the intermediate CA.",
 	)
 	rootCACheckCmd.PersistentFlags().StringVar(

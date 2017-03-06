@@ -24,6 +24,13 @@ var RootCmd = &cobra.Command{
 	Long: `A command-line utility for managing a deployment of Hashicorp's Vault
 project. This tool is geared towards CyVerse's Discovery Environment.`,
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		if parentToken == "" {
+			log.Fatal("--token must be set.")
+		}
+
+		if vaultURL == "" {
+			log.Fatal("--api-url must be set.")
+		}
 		connURL, err := url.Parse(vaultURL)
 		if err != nil {
 			log.Fatal(err)
