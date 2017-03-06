@@ -7,6 +7,7 @@ import (
 	"text/tabwriter"
 
 	"github.com/cyverse-de/vaulter"
+	vault "github.com/hashicorp/vault/api"
 	"github.com/spf13/cobra"
 )
 
@@ -20,8 +21,87 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		// TODO: Work your own magic here
-		fmt.Println("root-ca init called")
+		if mount == "" {
+			log.Fatal("--mount must be set.")
+		}
+
+		if role == "" {
+			log.Fatal("--role must be set.")
+		}
+
+		if commonName == "" {
+			log.Fatal("--common-name must be set.")
+		}
+
+		w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', tabwriter.StripEscape)
+
+		fmt.Fprint(w, "Mounting root CA backend:\t")
+		hasRoot, err := vaulter.IsMounted(vaultAPI, mount)
+		if err != nil {
+			fmt.Fprintf(w, "FAILURE\t\n")
+			log.Fatal(err)
+		}
+		if !hasRoot {
+			if err = vaulter.Mount(vaultAPI, mount, &vaulter.MountConfiguration{
+				Type:        "pki",
+				MaxLeaseTTL: "87600h",
+			}); err != nil {
+				fmt.Fprintf(w, "FAILURE\t\n")
+				log.Fatal(err)
+			}
+			fmt.Fprint(w, "SUCCESS\t\n")
+		} else {
+			fmt.Fprint(w, "SUCCESS\t\n")
+		}
+
+		fmt.Fprint(w, "Creating root CA role:\t")
+		var hasRole bool
+		if hasRole, err = vaulter.HasRole(vaultAPI, mount, role, commonName, true); err != nil {
+			fmt.Fprintf(w, "FAILURE\t\n")
+			log.Fatal(err)
+		}
+		if !hasRole {
+			_, err = vaulter.CreateRole(vaultAPI, mount, role, &vaulter.RoleConfig{
+				AllowedDomains:  commonName,
+				AllowSubdomains: true,
+				KeyBits:         4096,
+				AllowAnyName:    true,
+			})
+			if err != nil {
+				fmt.Fprintf(w, "FAILURE\t\n")
+				log.Fatal(err)
+			}
+			fmt.Fprintf(w, "SUCCESS\t\n")
+		} else {
+			fmt.Fprintf(w, "SUCCESS\t\n")
+		}
+
+		fmt.Fprint(w, "Creating root CA cert:\t")
+		var hasCert bool
+		if hasCert, err = vaulter.HasRootCert(vaultAPI, mount, role, commonName); err != nil {
+			fmt.Fprint(w, "FAILURE\t\n")
+			log.Fatal(err)
+		}
+		if !hasCert {
+			var rootCertSecret *vault.Secret
+			rootCertSecret, err = vaulter.RootCACert(vaultAPI, mount, &vaulter.RootCACertConfig{
+				CommonName: commonName,
+				TTL:        "87600h",
+				KeyBits:    4096,
+			})
+			if err != nil {
+				fmt.Fprint(w, "FAILURE\t\n")
+				log.Fatal(err)
+			}
+			if rootCertSecret == nil {
+				fmt.Fprint(w, "FAILURE\t\n")
+				log.Fatal("root CA cert secret is nil")
+			}
+			fmt.Fprint(w, "SUCCESS\t\n")
+		} else {
+			fmt.Fprint(w, "SUCCESS\t\n")
+		}
+		w.Flush()
 	},
 }
 
