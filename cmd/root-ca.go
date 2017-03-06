@@ -180,8 +180,32 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		// TODO: Work your own magic here
-		fmt.Println("root-ca remove called")
+		if mount == "" {
+			log.Fatal("--mount must be set.")
+		}
+
+		if role == "" {
+			log.Fatal("--role must be set.")
+		}
+
+		w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', tabwriter.StripEscape)
+
+		fmt.Fprint(w, "Unmounting root CA backend:\t")
+		hasRoot, err := vaulter.IsMounted(vaultAPI, mount)
+		if err != nil {
+			fmt.Fprintf(w, "FAILURE\t\n")
+			log.Fatal(err)
+		}
+		if hasRoot {
+			if err = vaulter.Unmount(vaultAPI, mount); err != nil {
+				fmt.Fprintf(w, "FAILURE\t\n")
+				log.Fatal(err)
+			}
+			fmt.Fprintf(w, "SUCCESS\t\n")
+		} else {
+			fmt.Fprintf(w, "SUCCESS\t\n")
+		}
+		w.Flush()
 	},
 }
 
