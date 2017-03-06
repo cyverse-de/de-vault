@@ -14,10 +14,10 @@ import (
 var rootCAInitCmd = &cobra.Command{
 	Use:   "root-ca",
 	Short: "Initialize a root CA in Vault",
-	Long: `Initializes a root CA in Vault, creating a backend mount, a role, and a
-root cert. Requires the --common-name setting. Does not recreate something if it
-already exists. If you require a full reset of the mount, role, and/or cert, use
-the 'remove root-ca' command followed by a 'init root-ca' command.`,
+	Long: `Initializes a root CA in Vault, creating a backend mount, a role, and
+a root cert. Requires the --common-name setting. Does not recreate something if
+it already exists. If you require a full reset of the mount, role, and/or cert,
+use the 'remove root-ca' command followed by a 'init root-ca' command.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if mount == "" {
 			log.Fatal("--mount must be set.")
@@ -107,8 +107,11 @@ var rootCACheckCmd = &cobra.Command{
 	Use:   "root-ca",
 	Short: "Checks the status of the root CA in Vault",
 	Long: `Checks the status of the root CA in Vault by determining the following:
-	 1) If the appropriate backend is mounted. 2) If the role exists. 3) If the
-root certificate exists.`,
+    1. If the appropriate backend is mounted.
+    2. If the role exists.
+    3. If the root certificate exists.
+This command does not create any of the above if it does not exist. Use the
+'init root-ca' command if that is what you require.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if mount == "" {
 			log.Fatal("--mount must be set.")
