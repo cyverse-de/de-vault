@@ -13,13 +13,11 @@ import (
 
 var rootCAInitCmd = &cobra.Command{
 	Use:   "root-ca",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "Initialize a root CA in Vault",
+	Long: `Initializes a root CA in Vault, creating a backend mount, a role, and a
+root cert. Requires the --common-name setting. Does not recreate something if it
+already exists. If you require a full reset of the mount, role, and/or cert, use
+the 'remove root-ca' command followed by a 'init root-ca' command.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if mount == "" {
 			log.Fatal("--mount must be set.")
@@ -107,13 +105,10 @@ to quickly create a Cobra application.`,
 
 var rootCACheckCmd = &cobra.Command{
 	Use:   "root-ca",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "Checks the status of the root CA in Vault",
+	Long: `Checks the status of the root CA in Vault by determining the following:
+	 1) If the appropriate backend is mounted. 2) If the role exists. 3) If the
+root certificate exists.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if mount == "" {
 			log.Fatal("--mount must be set.")
