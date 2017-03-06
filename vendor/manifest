@@ -49,7 +49,7 @@
 			"importpath": "github.com/cyverse-de/vaulter",
 			"repository": "https://github.com/cyverse-de/vaulter",
 			"vcs": "git",
-			"revision": "1b00ebfd919a8253e75c1ebc00bcb977977eb1e7",
+			"revision": "2bb98587c90d5f34628f5ef48bfd29118bd876b4",
 			"branch": "master",
 			"notests": true
 		},
