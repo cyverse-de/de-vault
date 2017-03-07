@@ -3,6 +3,8 @@ package cmd
 import (
 	"fmt"
 	"log"
+	"os"
+	"text/tabwriter"
 
 	"github.com/cyverse-de/vaulter"
 	"github.com/spf13/cobra"
@@ -32,28 +34,67 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Print("Intermediate CA backend is mounted:\t")
+		w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', tabwriter.StripEscape)
+
+		fmt.Fprint(w, "Intermediate CA backend is mounted:\t")
 		hasIntermediate, err := vaulter.IsMounted(vaultAPI, mount)
 		if err != nil {
 			log.Fatal(err)
 		}
 		if hasIntermediate {
-			fmt.Print("YES\n")
+			fmt.Fprint(w, "YES\t\n")
 		} else {
-			fmt.Print("NO\n")
+			fmt.Fprint(w, "NO\t\n")
 		}
 
-		fmt.Print("Intermediate CA role exists:\t")
-		hasRole, err := vaulter.HasRole(vaultAPI, mount, role, commonName, true)
-		if err != nil {
-			log.Fatal(err)
-		}
-		if hasRole {
-			fmt.Print("YES\n")
+		fmt.Fprint(w, "Intermediate CA role exists:\t")
+		if !hasIntermediate {
+			fmt.Fprint(w, "UNKNOWN\t\n")
 		} else {
-			fmt.Print("NO\n")
+			hasRole, err := vaulter.HasRole(vaultAPI, mount, role, commonName, true)
+			if err != nil {
+				log.Fatal(err)
+			}
+			if hasRole {
+				fmt.Fprint(w, "YES\t\n")
+			} else {
+				fmt.Fprint(w, "NO\t\n")
+			}
 		}
 
+		fmt.Fprint(w, "Intermediate CA backend is configured correctly:\t")
+		if !hasIntermediate {
+			fmt.Fprint(w, "UNKNOWN\t\n")
+		} else {
+			config, err := vaulter.ReadMount(vaultAPI, fmt.Sprintf("%s/config/urls", mount), parentToken)
+			if err != nil {
+				log.Fatal(err)
+			}
+			if config == nil {
+				log.Fatal("secret was nil")
+			}
+			var (
+				v  string
+				ok bool
+			)
+			if v, ok = config["issuing_certificates"].(string); !ok {
+				log.Fatal("issuing_certificates was not found")
+			}
+			if v != fmt.Sprintf("%s/v1/%s/ca", vaultURL, mount) {
+				fmt.Fprint(w, "FAILURE\t\n")
+				log.Fatalf("issuing_certificates was %s", v)
+			}
+
+			if v, ok = config["crl_distribution_points"].(string); !ok {
+				fmt.Fprint(w, "FAILURE\t\n")
+				log.Fatal("crl_distribution_points was not found")
+			}
+			if v != fmt.Sprintf("%s/v1/%s/crl", vaultURL, mount) {
+				fmt.Fprintf(w, "FAILURE\t\n")
+				log.Fatalf("crl_distribution_points was %s", v)
+			}
+		}
+		w.Flush()
 	},
 }
 
