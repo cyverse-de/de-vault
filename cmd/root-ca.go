@@ -203,21 +203,18 @@ command will return successfully if the root CA backend is already unmounted.`,
 }
 
 func init() {
-	const defaultRole = "root-ca"
-	const defaultMount = "root-ca"
-
 	// Set up the 'init root-ca' command.
 	initCmd.AddCommand(rootCAInitCmd)
 	rootCAInitCmd.PersistentFlags().StringVar(
 		&mount, // defined in root.go
 		"mount",
-		defaultMount,
+		defaultRootMount,
 		"The path in Vault to the intermediate CA pki backend.",
 	)
 	rootCAInitCmd.PersistentFlags().StringVar(
 		&role, // defined in root.go
 		"role",
-		defaultRole,
+		defaultRootRole,
 		"The name of the role to use for operations on the intermediate CA.",
 	)
 	rootCAInitCmd.PersistentFlags().StringVar(
@@ -232,7 +229,7 @@ func init() {
 	rootCARemoveCmd.PersistentFlags().StringVar(
 		&mount, // defined in root.go
 		"mount",
-		defaultMount,
+		defaultRootMount,
 		"The path in Vault to the intermediate CA pki backend.",
 	)
 
@@ -241,13 +238,13 @@ func init() {
 	rootCACheckCmd.PersistentFlags().StringVar(
 		&mount, // defined in root.go
 		"mount",
-		defaultMount,
+		defaultRootMount,
 		"The path in Vault to the intermediate CA pki backend.",
 	)
 	rootCACheckCmd.PersistentFlags().StringVar(
 		&role, // defined in root.go
 		"role",
-		defaultRole,
+		defaultRootRole,
 		"The name of the role to use for operations on the intermediate CA.",
 	)
 	rootCACheckCmd.PersistentFlags().StringVar(
