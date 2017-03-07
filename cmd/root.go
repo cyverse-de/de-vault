@@ -17,6 +17,22 @@ var (
 	vaultCFG    *vaulter.VaultAPIConfig
 )
 
+const defaultRootRole = "root-ca"
+const defaultRootMount = "root-ca"
+const defaultIntRole = "intermediate-ca"
+const defaultIntMount = "intermediate-ca"
+
+// Flusher can flush stuff.
+type Flusher interface {
+	Flush() error
+}
+
+// FatalFlush flushs something and the exits with a log.Fatal() call.
+func FatalFlush(f Flusher, e error) {
+	f.Flush()
+	log.Fatal(e)
+}
+
 // RootCmd is the root node in the command tree
 var RootCmd = &cobra.Command{
 	Use:   "de-vault",
