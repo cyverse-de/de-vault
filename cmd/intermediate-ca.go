@@ -26,14 +26,26 @@ to quickly create a Cobra application.`,
 
 var intermediateCACheckCmd = &cobra.Command{
 	Use:   "intermediate-ca",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "Checks the status of the intermediate CA in Vault",
+	Long: `Checks the status of the intermediate CA in Vault by determining the
+following:
+    1. If the intermediate CA backend is mounted.
+    2. If the role exists.
+    3. If the intermediate CA backend is configured correctly.
+This command does not create any of the above if it does not exist. If the
+backend is not mounted, then the status of each subsequent check will be
+'UNKNOWN'.`,
 	Run: func(cmd *cobra.Command, args []string) {
+		if mount == "" {
+			log.Fatal("--mount was not set.")
+		}
+		if role == "" {
+			log.Fatal("--role was not set.")
+		}
+		if commonName == "" {
+			log.Fatal("--common-name was not set.")
+		}
+
 		w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', tabwriter.StripEscape)
 
 		fmt.Fprint(w, "Intermediate CA backend is mounted:\t")
