@@ -67,11 +67,8 @@ project. This tool is geared towards CyVerse's Discovery Environment.`,
 }
 
 var (
-	mount      string // Path to a backend in Vault.
-	role       string // Name of the role used in some operations in Vault.
-	commonName string // The CN to use for some TLS-related operations.
-	certPath   string // Writable path to a file that will contain a TLS cert.
-	keyPath    string // Writable path to a file that will contain a TLS key.
+	certPath string // Writable path to a file that will contain a TLS cert.
+	keyPath  string // Writable path to a file that will contain a TLS key.
 )
 
 func init() {
