@@ -1,39 +1,59 @@
 package cmd
 
-import (
-	"fmt"
+import "github.com/spf13/cobra"
 
-	"github.com/spf13/cobra"
-)
+// TLSGen contains the commands for managing TLS certs and keys.
+type TLSGen struct {
+	mount      string
+	role       string
+	commonName string
+	Check      *cobra.Command
+	Generate   *cobra.Command
+	Revoke     *cobra.Command
+}
 
-// tls-certsCmd represents the tls-certs command
-var tlsCertsCmd = &cobra.Command{
-	Use:   "tls-certs",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
+// NewTLSGen returns a newly instantiated *TLSGen.
+func NewTLSGen() *TLSGen {
+	t := &TLSGen{
+		Check: &cobra.Command{
+			Use:   "tls",
+			Short: "Checks the status of a TLS cert/key pair by the serial number.",
+			Long:  "Checks the status of a TLS cert/key pair by the serial number.",
+		},
+		Generate: &cobra.Command{
+			Use:   "tls",
+			Short: "Generate a new TLS cert/key pair.",
+			Long:  "Generates a new TLS cert/key pair.",
+		},
+		Revoke: &cobra.Command{
+			Use:   "tls",
+			Short: "Revokes a TLS cert/key pair.",
+			Long:  "Revokes a TLS cert/key pair.",
+		},
+	}
 
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		// TODO: Work your own magic here
-		fmt.Println("tls-certs called")
-	},
+	t.Check.Run = t.checkRun
+	t.Generate.Run = t.generateRun
+	t.Revoke.Run = t.revokeRun
+
+	return t
+}
+
+func (t *TLSGen) checkRun(cmd *cobra.Command, args []string) {
+
+}
+
+func (t *TLSGen) generateRun(cmd *cobra.Command, args []string) {
+
+}
+
+func (t *TLSGen) revokeRun(cmd *cobra.Command, args []string) {
+
 }
 
 func init() {
-	generateCmd.AddCommand(tlsCertsCmd)
-	tlsCertsCmd.PersistentFlags().StringVar(
-		&certPath,
-		"tls-cert",
-		"",
-		"The path that will contain the new TLS cert.",
-	)
-	tlsCertsCmd.PersistentFlags().StringVar(
-		&keyPath,
-		"tls-key",
-		"",
-		"The path that will contain the new TLS key.",
-	)
+	t := NewTLSGen()
+	generateCmd.AddCommand(t.Generate)
+	checkCmd.AddCommand(t.Check)
+	revokeCmd.AddCommand(t.Revoke)
 }
