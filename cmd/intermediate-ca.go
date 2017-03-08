@@ -35,26 +35,24 @@ new PKI backend that has a role configured and a signed CSR imported into it.`,
 		},
 		Check: &cobra.Command{
 			Use:   "intermediate-ca",
-			Short: "Checks the status of the intermediate CA in Vault",
+			Short: "Checks the status of the intermediate CA in Vault.",
 			Long: `Checks the status of the intermediate CA in Vault by determining
-			the following:
-				1. If the intermediate CA backend is mounted.
-				2. If the role exists.
-				3. If the intermediate CA backend is configured correctly.
-			This command does not create any of the above if it does not exist. If the
-			backend is not mounted, then the status of each subsequent check will be
-			'UNKNOWN'.`,
+the following:
+	1. If the intermediate CA backend is mounted.
+	2. If the role exists.
+	3. If the intermediate CA backend is configured correctly.
+This command does not create any of the above if it does not exist. If the
+backend is not mounted, then the status of each subsequent check will be
+'UNKNOWN'.`,
 		},
 		Remove: &cobra.Command{
 			Use:   "intermediate-ca",
-			Short: "A brief description of your command",
-			Long: `A longer description that spans multiple lines and likely contains
-			examples and usage of using your command. For example:
-			Cobra is a CLI library for Go that empowers applications. This application
-			is a tool to generate the needed files to quickly create a Cobra
-			application.`,
+			Short: "Removes the intermediate CA from Vault.",
+			Long: `Removes the intermediate CA from Vault. This is accomplished by
+unmounted the PKI backend handling operations for the intermediate CA.`,
 		},
 	}
+
 	ca.Init.Run = ca.initRun
 	ca.Check.Run = ca.checkRun
 	ca.Remove.Run = ca.removeRun
