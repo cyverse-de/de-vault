@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -11,6 +12,12 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var (
+	rootMount      string // Path to a backend in Vault.
+	rootRole       string // Name of the role used in some operations in Vault.
+	rootCommonName string // The CN to use for some TLS-related operations.
+)
+
 var rootCAInitCmd = &cobra.Command{
 	Use:   "root-ca",
 	Short: "Initialize a root CA in Vault",
@@ -19,33 +26,33 @@ a root cert. Requires the --common-name setting. Does not recreate something if
 it already exists. If you require a full reset of the mount, role, and/or cert,
 use the 'remove root-ca' command followed by a 'init root-ca' command.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		if mount == "" {
+		if rootMount == "" {
 			log.Fatal("--mount must be set.")
 		}
 
-		if role == "" {
+		if rootRole == "" {
 			log.Fatal("--role must be set.")
 		}
 
-		if commonName == "" {
+		if rootCommonName == "" {
 			log.Fatal("--common-name must be set.")
 		}
 
 		w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', tabwriter.StripEscape)
 
 		fmt.Fprint(w, "Mounting root CA backend:\t")
-		hasRoot, err := vaulter.IsMounted(vaultAPI, mount)
+		hasRoot, err := vaulter.IsMounted(vaultAPI, rootMount)
 		if err != nil {
 			fmt.Fprintf(w, "FAILURE\t\n")
-			log.Fatal(err)
+			FatalFlush(w, err)
 		}
 		if !hasRoot {
-			if err = vaulter.Mount(vaultAPI, mount, &vaulter.MountConfiguration{
+			if err = vaulter.Mount(vaultAPI, rootMount, &vaulter.MountConfiguration{
 				Type:        "pki",
 				MaxLeaseTTL: "87600h",
 			}); err != nil {
 				fmt.Fprintf(w, "FAILURE\t\n")
-				log.Fatal(err)
+				FatalFlush(w, err)
 			}
 			fmt.Fprint(w, "SUCCESS\t\n")
 		} else {
@@ -54,20 +61,20 @@ use the 'remove root-ca' command followed by a 'init root-ca' command.`,
 
 		fmt.Fprint(w, "Creating root CA role:\t")
 		var hasRole bool
-		if hasRole, err = vaulter.HasRole(vaultAPI, mount, role, commonName, true); err != nil {
+		if hasRole, err = vaulter.HasRole(vaultAPI, rootMount, rootRole, rootCommonName, true); err != nil {
 			fmt.Fprintf(w, "FAILURE\t\n")
-			log.Fatal(err)
+			FatalFlush(w, err)
 		}
 		if !hasRole {
-			_, err = vaulter.CreateRole(vaultAPI, mount, role, &vaulter.RoleConfig{
-				AllowedDomains:  commonName,
+			_, err = vaulter.CreateRole(vaultAPI, rootMount, rootRole, &vaulter.RoleConfig{
+				AllowedDomains:  rootCommonName,
 				AllowSubdomains: true,
 				KeyBits:         4096,
 				AllowAnyName:    true,
 			})
 			if err != nil {
 				fmt.Fprintf(w, "FAILURE\t\n")
-				log.Fatal(err)
+				FatalFlush(w, err)
 			}
 			fmt.Fprintf(w, "SUCCESS\t\n")
 		} else {
@@ -76,24 +83,24 @@ use the 'remove root-ca' command followed by a 'init root-ca' command.`,
 
 		fmt.Fprint(w, "Creating root CA cert:\t")
 		var hasCert bool
-		if hasCert, err = vaulter.HasRootCert(vaultAPI, mount, role, commonName); err != nil {
+		if hasCert, err = vaulter.HasRootCert(vaultAPI, rootMount, rootRole, rootCommonName); err != nil {
 			fmt.Fprint(w, "FAILURE\t\n")
-			log.Fatal(err)
+			FatalFlush(w, err)
 		}
 		if !hasCert {
 			var rootCertSecret *vault.Secret
-			rootCertSecret, err = vaulter.RootCACert(vaultAPI, mount, &vaulter.RootCACertConfig{
-				CommonName: commonName,
+			rootCertSecret, err = vaulter.RootCACert(vaultAPI, rootMount, &vaulter.RootCACertConfig{
+				CommonName: rootCommonName,
 				TTL:        "87600h",
 				KeyBits:    4096,
 			})
 			if err != nil {
 				fmt.Fprint(w, "FAILURE\t\n")
-				log.Fatal(err)
+				FatalFlush(w, err)
 			}
 			if rootCertSecret == nil {
 				fmt.Fprint(w, "FAILURE\t\n")
-				log.Fatal("root CA cert secret is nil")
+				FatalFlush(w, errors.New("root CA cert secret is nil"))
 			}
 			fmt.Fprint(w, "SUCCESS\t\n")
 		} else {
@@ -113,24 +120,24 @@ var rootCACheckCmd = &cobra.Command{
 This command does not create any of the above if it does not exist. Use the
 'init root-ca' command if that is what you require.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		if mount == "" {
+		if rootMount == "" {
 			log.Fatal("--mount must be set.")
 		}
 
-		if role == "" {
+		if rootRole == "" {
 			log.Fatal("--role must be set.")
 		}
 
-		if commonName == "" {
+		if rootCommonName == "" {
 			log.Fatal("--common-name must be set.")
 		}
 
 		w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', tabwriter.StripEscape)
 
 		fmt.Fprintf(w, "Root CA backend is mounted:\t")
-		hasRoot, err := vaulter.IsMounted(vaultAPI, mount)
+		hasRoot, err := vaulter.IsMounted(vaultAPI, rootMount)
 		if err != nil {
-			log.Fatal(err)
+			FatalFlush(w, err)
 		}
 		if hasRoot {
 			fmt.Fprint(w, "YES\t\n")
@@ -140,9 +147,9 @@ This command does not create any of the above if it does not exist. Use the
 
 		var hasRole bool
 		fmt.Fprintf(w, "Root CA role exists:\t")
-		hasRole, err = vaulter.HasRole(vaultAPI, mount, role, commonName, true)
+		hasRole, err = vaulter.HasRole(vaultAPI, rootMount, rootRole, rootCommonName, true)
 		if err != nil {
-			log.Fatal(err)
+			FatalFlush(w, err)
 		}
 		if hasRole {
 			fmt.Fprint(w, "YES\t\n")
@@ -155,9 +162,9 @@ This command does not create any of the above if it does not exist. Use the
 			fmt.Fprint(w, "UNKNOWN\t\n")
 		} else {
 			var hasCert bool
-			hasCert, err = vaulter.HasRootCert(vaultAPI, mount, role, commonName)
+			hasCert, err = vaulter.HasRootCert(vaultAPI, rootMount, rootRole, rootCommonName)
 			if err != nil {
-				log.Fatal(err)
+				FatalFlush(w, err)
 			}
 			if hasCert {
 				fmt.Fprint(w, "YES\t\n")
@@ -177,22 +184,22 @@ var rootCARemoveCmd = &cobra.Command{
 from Vault. This is done by unmounting the Vault backend for the root CA. This
 command will return successfully if the root CA backend is already unmounted.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		if mount == "" {
+		if rootMount == "" {
 			log.Fatal("--mount must be set.")
 		}
 
 		w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', tabwriter.StripEscape)
 
 		fmt.Fprint(w, "Unmounting root CA backend:\t")
-		hasRoot, err := vaulter.IsMounted(vaultAPI, mount)
+		hasRoot, err := vaulter.IsMounted(vaultAPI, rootMount)
 		if err != nil {
 			fmt.Fprintf(w, "FAILURE\t\n")
-			log.Fatal(err)
+			FatalFlush(w, err)
 		}
 		if hasRoot {
-			if err = vaulter.Unmount(vaultAPI, mount); err != nil {
+			if err = vaulter.Unmount(vaultAPI, rootMount); err != nil {
 				fmt.Fprintf(w, "FAILURE\t\n")
-				log.Fatal(err)
+				FatalFlush(w, err)
 			}
 			fmt.Fprintf(w, "SUCCESS\t\n")
 		} else {
@@ -206,19 +213,19 @@ func init() {
 	// Set up the 'init root-ca' command.
 	initCmd.AddCommand(rootCAInitCmd)
 	rootCAInitCmd.PersistentFlags().StringVar(
-		&mount, // defined in root.go
+		&rootMount, // defined in root.go
 		"mount",
 		defaultRootMount,
 		"The path in Vault to the intermediate CA pki backend.",
 	)
 	rootCAInitCmd.PersistentFlags().StringVar(
-		&role, // defined in root.go
+		&rootRole, // defined in root.go
 		"role",
 		defaultRootRole,
 		"The name of the role to use for operations on the intermediate CA.",
 	)
 	rootCAInitCmd.PersistentFlags().StringVar(
-		&commonName, // defined in root.go
+		&rootCommonName, // defined in root.go
 		"common-name",
 		"",
 		"The common name to use for operations on the intermediate CA.",
@@ -227,7 +234,7 @@ func init() {
 	// Set up the 'remove root-ca' command.
 	removeCmd.AddCommand(rootCARemoveCmd)
 	rootCARemoveCmd.PersistentFlags().StringVar(
-		&mount, // defined in root.go
+		&rootMount, // defined in root.go
 		"mount",
 		defaultRootMount,
 		"The path in Vault to the intermediate CA pki backend.",
@@ -235,20 +242,20 @@ func init() {
 
 	// Set up the 'check root-ca' command.
 	checkCmd.AddCommand(rootCACheckCmd)
-	rootCACheckCmd.PersistentFlags().StringVar(
-		&mount, // defined in root.go
+	rootCACheckCmd.Flags().StringVar(
+		&rootMount, // defined in root.go
 		"mount",
 		defaultRootMount,
 		"The path in Vault to the intermediate CA pki backend.",
 	)
-	rootCACheckCmd.PersistentFlags().StringVar(
-		&role, // defined in root.go
+	rootCACheckCmd.Flags().StringVar(
+		&rootRole, // defined in root.go
 		"role",
 		defaultRootRole,
 		"The name of the role to use for operations on the intermediate CA.",
 	)
-	rootCACheckCmd.PersistentFlags().StringVar(
-		&commonName, // defined in root.go
+	rootCACheckCmd.Flags().StringVar(
+		&rootCommonName, // defined in root.go
 		"common-name",
 		"",
 		"The common name to use for operations on the intermediate CA.",
