@@ -139,6 +139,10 @@ func (t *TLSGen) generateRun(cmd *cobra.Command, args []string) {
 		fmt.Fprint(w, "FAILURE\t\n")
 		FatalFlush(w, errors.New("No issuing CA found."))
 	}
+	if _, ok := certSecret.Data["serial_number"]; !ok {
+		fmt.Fprint(w, "FAILURE\t\n")
+		FatalFlush(w, errors.New("No serial number found."))
+	}
 	fmt.Fprint(w, "SUCCESS\t\n")
 
 	fmt.Fprint(w, "Writing cert to file:\t")
@@ -186,6 +190,9 @@ func (t *TLSGen) generateRun(cmd *cobra.Command, args []string) {
 		FatalFlush(w, err)
 	}
 	fmt.Fprint(w, "SUCCESS\t\n")
+
+	fmt.Fprint(w, "TLS cert/key serial number (SAVE THIS):\t")
+	fmt.Fprint(w, fmt.Sprintf("%s\t\n", certSecret.Data["serial_number"]))
 
 	w.Flush()
 }
