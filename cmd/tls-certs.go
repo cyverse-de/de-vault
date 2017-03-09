@@ -14,14 +14,15 @@ import (
 
 // TLSGen contains the commands for managing TLS certs and keys.
 type TLSGen struct {
-	mount      string
-	role       string
-	commonName string
-	certPath   string
-	keyPath    string
-	Check      *cobra.Command
-	Generate   *cobra.Command
-	Revoke     *cobra.Command
+	mount        string
+	role         string
+	commonName   string
+	certPath     string
+	keyPath      string
+	serialNumber string
+	Check        *cobra.Command
+	Generate     *cobra.Command
+	Revoke       *cobra.Command
 }
 
 // NewTLSGen returns a newly instantiated *TLSGen.
@@ -77,6 +78,13 @@ func NewTLSGen() *TLSGen {
 		"key-path",
 		"",
 		"The file path for the TLS key. Should be writable.",
+	)
+
+	t.Generate.PersistentFlags().StringVar(
+		&t.serialNumber,
+		"serial-number",
+		"",
+		"The serial number for a TLS cert/key.",
 	)
 
 	return t
@@ -198,7 +206,19 @@ func (t *TLSGen) generateRun(cmd *cobra.Command, args []string) {
 }
 
 func (t *TLSGen) revokeRun(cmd *cobra.Command, args []string) {
+	if t.serialNumber == "" {
+		log.Fatal("--serial-number must be set.")
+	}
 
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', tabwriter.StripEscape)
+
+	fmt.Fprint(w, "Revoking TLS cert/key by serial number:\t")
+	err := vaulter.RevokePKICert(vaultAPI, t.serialNumber)
+	if err != nil {
+		fmt.Fprint(w, "FAILURE\t\n")
+		FatalFlush(w, err)
+	}
+	fmt.Fprint(w, "SUCCESS\t\n")
 }
 
 func init() {
