@@ -1,6 +1,16 @@
 package cmd
 
-import "github.com/spf13/cobra"
+import (
+	"errors"
+	"fmt"
+	"io"
+	"log"
+	"os"
+	"text/tabwriter"
+
+	"github.com/cyverse-de/vaulter"
+	"github.com/spf13/cobra"
+)
 
 // TLSGen contains the commands for managing TLS certs and keys.
 type TLSGen struct {
@@ -77,7 +87,107 @@ func (t *TLSGen) checkRun(cmd *cobra.Command, args []string) {
 }
 
 func (t *TLSGen) generateRun(cmd *cobra.Command, args []string) {
+	var err error
+	if t.mount == "" {
+		log.Fatal("--mount must be set.")
+	}
+	if t.role == "" {
+		log.Fatal("--role must be set.")
+	}
+	if t.commonName == "" {
+		log.Fatal("--common-name must be set.")
+	}
+	if t.certPath == "" {
+		log.Fatal("--cert-path must be set.")
+	}
+	if t.keyPath == "" {
+		log.Fatal("--key-path must be set.")
+	}
 
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', tabwriter.StripEscape)
+
+	fmt.Fprint(w, "Create a role for cert generation: \t")
+	certRoleConfig := &vaulter.RoleConfig{
+		KeyBits:      4096,
+		MaxTTL:       "8760h",
+		AllowAnyName: true,
+	}
+	if _, err = vaulter.CreateRole(vaultAPI, t.mount, t.role, certRoleConfig); err != nil {
+		fmt.Fprint(w, "FAILURE\t\n")
+		FatalFlush(w, err)
+	}
+	fmt.Fprint(w, "SUCCESS\t\n")
+
+	fmt.Fprint(w, "Create a cert with the role:\t")
+	issueCertConfig := &vaulter.IssueCertConfig{
+		CommonName: t.commonName,
+		TTL:        "720h",
+		Format:     "pem",
+	}
+	certSecret, err := vaulter.IssueCert(vaultAPI, t.mount, t.role, issueCertConfig)
+	if err != nil {
+		fmt.Fprint(w, "FAILURE\t\n")
+		FatalFlush(w, err)
+	}
+
+	if _, ok := certSecret.Data["certificate"]; !ok {
+		fmt.Fprint(w, "FAILURE\t\n")
+		FatalFlush(w, errors.New("No certificate found."))
+	}
+
+	if _, ok := certSecret.Data["issuing_ca"]; !ok {
+		fmt.Fprint(w, "FAILURE\t\n")
+		FatalFlush(w, errors.New("No issuing CA found."))
+	}
+	fmt.Fprint(w, "SUCCESS\t\n")
+
+	fmt.Fprint(w, "Writing cert to file:\t")
+	certfile, err := os.Create(t.certPath)
+	defer certfile.Close()
+	if err != nil {
+		fmt.Fprint(w, "FAILURE\t\n")
+		FatalFlush(w, err)
+	}
+	if _, err = io.WriteString(certfile, certSecret.Data["certificate"].(string)); err != nil {
+		fmt.Fprint(w, "FAILURE\t\n")
+		FatalFlush(w, err)
+	}
+	if _, err = io.WriteString(certfile, "\n"); err != nil {
+		fmt.Fprint(w, "FAILURE\t\n")
+		FatalFlush(w, err)
+	}
+	if _, err = io.WriteString(certfile, certSecret.Data["issuing_ca"].(string)); err != nil {
+		fmt.Fprint(w, "FAILURE\t\n")
+		FatalFlush(w, err)
+	}
+	if _, err = io.WriteString(certfile, "\n"); err != nil {
+		fmt.Fprint(w, "FAILURE\t\n")
+		FatalFlush(w, err)
+	}
+	fmt.Fprint(w, "SUCCESS\t\n")
+
+	fmt.Fprint(w, "Write key to file:\t")
+	if _, ok := certSecret.Data["private_key"]; !ok {
+		fmt.Fprint(w, "FAILURE\t\n")
+		FatalFlush(w, err)
+	}
+
+	keyfile, err := os.Create(t.keyPath)
+	defer keyfile.Close()
+	if err != nil {
+		fmt.Fprint(w, "FAILURE\t\n")
+		FatalFlush(w, err)
+	}
+	if _, err = io.WriteString(keyfile, certSecret.Data["private_key"].(string)); err != nil {
+		FatalFlush(w, err)
+	}
+	if _, err = io.WriteString(keyfile, "\n"); err != nil {
+		fmt.Fprint(w, "FAILURE\t\n")
+		FatalFlush(w, err)
+	}
+	fmt.Fprint(w, "SUCCESS\t\n")
+
+	w.Flush()
 }
 
 func (t *TLSGen) revokeRun(cmd *cobra.Command, args []string) {
