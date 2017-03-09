@@ -80,7 +80,7 @@ func NewTLSGen() *TLSGen {
 		"The file path for the TLS key. Should be writable.",
 	)
 
-	t.Generate.PersistentFlags().StringVar(
+	t.Revoke.PersistentFlags().StringVar(
 		&t.serialNumber,
 		"serial-number",
 		"",
