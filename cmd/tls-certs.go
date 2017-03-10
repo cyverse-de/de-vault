@@ -9,6 +9,7 @@ import (
 	"text/tabwriter"
 
 	"github.com/cyverse-de/vaulter"
+	vault "github.com/hashicorp/vault/api"
 	"github.com/spf13/cobra"
 )
 
@@ -87,11 +88,55 @@ func NewTLSGen() *TLSGen {
 		"The serial number for a TLS cert/key.",
 	)
 
+	t.Check.PersistentFlags().StringVar(
+		&t.mount,
+		"mount",
+		defaultIntMount,
+		"The path in Vault to the intermediate CA backend.",
+	)
+	t.Check.PersistentFlags().StringVar(
+		&t.serialNumber,
+		"serial-number",
+		"",
+		"The serial number for the TLS cert/key.",
+	)
+
 	return t
 }
 
 func (t *TLSGen) checkRun(cmd *cobra.Command, args []string) {
+	var (
+		err        error
+		certSecret *vault.Secret
+	)
+	if t.serialNumber == "" {
+		log.Fatal("--serial-number must be set.")
+	}
 
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', tabwriter.StripEscape)
+
+	fmt.Fprint(w, "Retrieving information about the cert:\t")
+	readPath := fmt.Sprintf("%s/cert/%s", t.mount, t.serialNumber)
+	if certSecret, err = vaultAPI.Read(vaultAPI.Client(), readPath); err != nil {
+		fmt.Fprint(w, "FAILURE\t\n")
+		FatalFlush(w, err)
+	}
+	if certSecret == nil {
+		fmt.Fprint(w, "FAILURE\t\n")
+		FatalFlush(w, fmt.Errorf("contents of %s were nil", readPath))
+	}
+	if certSecret.Data == nil {
+		fmt.Fprint(w, "FAILURE\t\n")
+		FatalFlush(w, fmt.Errorf("read of %s returned no data", readPath))
+	}
+	if _, ok := certSecret.Data["revocation_time"]; !ok {
+		fmt.Fprint(w, "FAILURE\t\n")
+		FatalFlush(w, errors.New("revocation time is missing"))
+	}
+	fmt.Fprint(w, "SUCCESS\t\n")
+
+	fmt.Fprintf(w, "Revocation time:\t%s\t\n", certSecret.Data["revocation_time"])
+	w.Flush()
 }
 
 func (t *TLSGen) generateRun(cmd *cobra.Command, args []string) {
@@ -213,10 +258,29 @@ func (t *TLSGen) revokeRun(cmd *cobra.Command, args []string) {
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', tabwriter.StripEscape)
 
 	fmt.Fprint(w, "Revoking TLS cert/key by serial number:\t")
-	err := vaulter.RevokePKICert(vaultAPI, t.serialNumber)
+	revokeSecret, err := vaultAPI.Write(vaultAPI.Client(), fmt.Sprintf("%s/revoke", t.mount), map[string]interface{}{
+		"serial_number": t.serialNumber,
+	})
 	if err != nil {
 		fmt.Fprint(w, "FAILURE\t\n")
 		FatalFlush(w, err)
+	}
+	if revokeSecret == nil {
+		fmt.Fprint(w, "FAILURE\t\n")
+		FatalFlush(w, errors.New("revoke returned nil"))
+	}
+	if revokeSecret.Data == nil {
+		fmt.Fprint(w, "FAILURE\t\n")
+		FatalFlush(w, errors.New("revoke returned no data"))
+	}
+	if _, ok := revokeSecret.Data["revocation_time"]; !ok {
+		fmt.Fprint(w, "FAILURE\t\n")
+		FatalFlush(w, errors.New("failed to get the revocation time"))
+	}
+	rtime := revokeSecret.Data["revocation_time"]
+	if rtime == 0 {
+		fmt.Fprint(w, "FAILURE\t\n")
+		FatalFlush(w, errors.New("revocation time was 0"))
 	}
 	fmt.Fprint(w, "SUCCESS\t\n")
 	w.Flush()
