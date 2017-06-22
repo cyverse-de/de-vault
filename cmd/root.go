@@ -4,7 +4,7 @@ import (
 	"log"
 	"net/url"
 
-	"github.com/cyverse-de/vaulter"
+	"github.com/cyverse-de/de-vault/vaulter"
 	"github.com/spf13/cobra"
 )
 

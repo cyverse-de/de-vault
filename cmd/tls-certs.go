@@ -8,7 +8,7 @@ import (
 	"os"
 	"text/tabwriter"
 
-	"github.com/cyverse-de/vaulter"
+	"github.com/cyverse-de/de-vault/vaulter"
 	vault "github.com/hashicorp/vault/api"
 	"github.com/spf13/cobra"
 )
